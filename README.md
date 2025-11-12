@@ -64,6 +64,8 @@ This will launch a window where you can:
 3.  For each file, map the VNA ports to the corresponding Device Under Test (DUT) ports.
 4.  Specify an output file and merge the measurements.
 
+<img width="600"  alt="S-Parameter Merge GUI" src="https://github.com/user-attachments/assets/88a489ad-b9af-432f-822d-d4351ed8de68" />
+
 ### 2. Command-Line Interface (CLI)
 
 For automation and scripting, you can use the `reconstruct_nport.py` script directly.
