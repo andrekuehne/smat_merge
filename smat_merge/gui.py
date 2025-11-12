@@ -3,7 +3,7 @@ from tkinter import ttk, filedialog, messagebox
 import os
 import numpy as np
 import skrf as rf
-from .reconstruct_nport import reconstruct_from_networks
+from .reconstruct_nport import reconstruct_nport
 
 class SMatMergeApp(tk.Tk):
     def __init__(self):
@@ -244,7 +244,7 @@ class SMatMergeApp(tk.Tk):
                 return
 
         try:
-            full_net, counts = reconstruct_from_networks(networks, port_sets, n_ports=n_ports)
+            full_net, counts = reconstruct_nport(networks, port_sets, n_ports=n_ports)
             
             # Check for conflicts before writing
             if os.path.abspath(output_file) in [os.path.abspath(f['path']) for f in self.files]:
