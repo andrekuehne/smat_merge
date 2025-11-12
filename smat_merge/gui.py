@@ -262,6 +262,10 @@ class SMatMergeApp(tk.Tk):
             messagebox.showerror("Merge Error", f"An error occurred during merging:\n{e}")
 
 
-if __name__ == "__main__":
+def main():
     app = SMatMergeApp()
     app.mainloop()
+
+
+if __name__ == "__main__":
+    main()
