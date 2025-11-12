@@ -4,7 +4,7 @@ import numpy as np
 import skrf as rf
 
 
-def reconstruct_from_networks(networks, port_sets, n_ports=5):
+def reconstruct_nport(networks, port_sets, n_ports=5):
     """
     Reconstruct a full n_ports x n_ports S-matrix from a set of
     scikit-rf Networks measured on different port subsets.
@@ -88,7 +88,7 @@ def parse_config_args(config_args):
     configs = []
     for cfg in config_args:
         try:
-            fname, ports_str = cfg.split(":")
+            fname, ports_str = cfg.rsplit(":", 1)
         except ValueError:
             raise ValueError(
                 f"Invalid config '{cfg}'. Use format 'file.s4p:1,2,3,4'"
@@ -143,7 +143,7 @@ def main():
         port_sets.append(ports)
 
     # Reconstruct full network
-    full_net, counts = reconstruct_from_networks(
+    full_net, counts = reconstruct_nport(
         networks, port_sets, n_ports=args.n_ports
     )
 
