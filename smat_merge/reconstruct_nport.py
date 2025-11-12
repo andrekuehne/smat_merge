@@ -99,6 +99,14 @@ def parse_config_args(config_args):
 
 
 def main():
+    # To run this script directly for testing, you can add the project root to the path
+    # This allows the script to be run as `python -m smat_merge.reconstruct_nport`
+    # as well as `python smat_merge/reconstruct_nport.py`
+    import sys
+    import os
+    if __package__ is None:
+        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
     parser = argparse.ArgumentParser(
         description=(
             "Reconstruct an N-port S-matrix from multiple Touchstone "
