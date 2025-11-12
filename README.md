@@ -17,7 +17,7 @@ This project uses `uv` for fast environment and package management.
 
 1.  **Install `uv`**
 
-    Before you begin, you need to have `uv` installed on your system. You can find the official installation instructions here: [**astral-sh/uv**](https://github.com/astral-sh/uv).
+    Before you begin, you need to have `uv` installed on your system. You can find the official installation instructions here: [**astral-sh/uv**](https://docs.astral.sh/uv/getting-started/installation/).
 
 2.  **Set up the Environment and Install Dependencies**
 
