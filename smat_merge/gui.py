@@ -78,7 +78,16 @@ class SMatMergeApp(tk.Tk):
         if fnames:
             for fname in fnames:
                 if fname not in [f['path'] for f in self.files]:
-                    self.files.append({'path': fname, 'ports': []})
+                    try:
+                        net = rf.Network(fname)
+                        # Default mapping is VNA port i -> DUT port i
+                        default_ports = list(range(1, net.nports + 1))
+                        self.files.append({'path': fname, 'ports': default_ports, 'vna_ports': net.nports})
+                    except Exception as e:
+                        messagebox.showwarning("File Read Warning", f"Could not read {os.path.basename(fname)} to determine port count. Please configure manually.\n\nError: {e}")
+                        # Add with empty config
+                        self.files.append({'path': fname, 'ports': [], 'vna_ports': 0})
+
             self.update_file_list()
             if len(self.files) == 1: # First file added
                 self.update_default_output_path()
@@ -89,26 +98,43 @@ class SMatMergeApp(tk.Tk):
         self.file_widgets = []
 
         n_ports = self.n_ports_var.get()
+        dut_port_options = list(range(1, n_ports + 1))
 
         for i, file_info in enumerate(self.files):
-            file_frame = ttk.Frame(self.scrollable_frame)
-            file_frame.pack(fill=tk.X, pady=2)
+            file_frame = ttk.Frame(self.scrollable_frame, padding=5, relief="groove", borderwidth=1)
+            file_frame.pack(fill=tk.X, pady=3, padx=5)
 
-            label = ttk.Label(file_frame, text=os.path.basename(file_info['path']), width=30)
-            label.pack(side=tk.LEFT, padx=5)
+            # Top row: Filename and Remove button
+            top_frame = ttk.Frame(file_frame)
+            top_frame.pack(fill=tk.X)
+            label = ttk.Label(top_frame, text=os.path.basename(file_info['path']), width=40, font="-weight bold")
+            label.pack(side=tk.LEFT, padx=5, pady=(0, 5))
+            remove_button = ttk.Button(top_frame, text="Remove", command=lambda i=i: self.remove_file(i))
+            remove_button.pack(side=tk.RIGHT, padx=5)
 
+            # Bottom row: Port mapping dropdowns
             ports_frame = ttk.Frame(file_frame)
-            ports_frame.pack(side=tk.LEFT, padx=5)
+            ports_frame.pack(fill=tk.X)
             
             port_vars = []
-            for j in range(n_ports):
-                var = tk.BooleanVar(value=(j + 1) in file_info.get('ports', []))
-                cb = ttk.Checkbutton(ports_frame, text=str(j + 1), variable=var)
-                cb.pack(side=tk.LEFT)
-                port_vars.append(var)
+            num_vna_ports = file_info.get('vna_ports', 0)
+            current_mapping = file_info.get('ports', [])
 
-            remove_button = ttk.Button(file_frame, text="Remove", command=lambda i=i: self.remove_file(i))
-            remove_button.pack(side=tk.RIGHT, padx=5)
+            for j in range(num_vna_ports):
+                map_frame = ttk.Frame(ports_frame)
+                map_frame.pack(side=tk.LEFT, padx=5, fill=tk.X)
+                
+                vna_label = ttk.Label(map_frame, text=f"VNA {j+1} → DUT")
+                vna_label.pack(side=tk.LEFT)
+
+                var = tk.IntVar()
+                # Set value if it exists in the current mapping
+                if j < len(current_mapping):
+                    var.set(current_mapping[j])
+
+                dropdown = ttk.Combobox(map_frame, textvariable=var, values=dut_port_options, width=4, state="readonly")
+                dropdown.pack(side=tk.LEFT, padx=2)
+                port_vars.append(var)
             
             self.file_widgets.append({'frame': file_frame, 'port_vars': port_vars})
 
@@ -121,16 +147,15 @@ class SMatMergeApp(tk.Tk):
             self.update_default_output_path()
 
     def update_port_checkboxes(self):
+        # This function is now misnamed but is called by the N-ports spinbox.
+        # It now rebuilds the UI with the correct number of DUT port options.
         self.save_port_selections()
         self.update_file_list()
 
     def save_port_selections(self):
         for i, file_info in enumerate(self.files):
             if i < len(self.file_widgets):
-                selected_ports = []
-                for j, var in enumerate(self.file_widgets[i]['port_vars']):
-                    if var.get():
-                        selected_ports.append(j + 1)
+                selected_ports = [var.get() for var in self.file_widgets[i]['port_vars'] if var.get() != 0]
                 file_info['ports'] = selected_ports
 
     def update_default_output_path(self):
@@ -188,20 +213,25 @@ class SMatMergeApp(tk.Tk):
         all_used_ports = set()
 
         for file_info in self.files:
-            if not file_info['ports']:
-                messagebox.showerror("Error", f"No ports defined for {os.path.basename(file_info['path'])}.")
+            ports = file_info.get('ports', [])
+            if not ports or len(ports) != file_info.get('vna_ports', -1):
+                messagebox.showerror("Error", f"All VNA ports must be mapped to a DUT port for {os.path.basename(file_info['path'])}.")
                 return
             
-            if len(file_info['ports']) == n_ports:
-                 if not messagebox.askyesno("Consistency Check", f"All {n_ports} ports are selected for {os.path.basename(file_info['path'])}.\nThis file might already be a full {n_ports}-port network. Do you want to continue?"):
-                     return
+            # Check for duplicate DUT port assignments within one file
+            if len(ports) != len(set(ports)):
+                messagebox.showerror("Error", f"Duplicate DUT port assignment in {os.path.basename(file_info['path'])}.\nEach VNA port must connect to a unique DUT port.")
+                return
 
             try:
                 net = rf.Network(file_info['path'])
+                if net.nports != len(ports):
+                     messagebox.showwarning("Warning", f"File {net.name} is a {net.nports}-port network, but {len(ports)} ports were specified.\nThis may indicate a configuration error.")
+
                 net.name = os.path.basename(file_info['path'])
                 networks.append(net)
-                port_sets.append(tuple(file_info['ports']))
-                all_used_ports.update(file_info['ports'])
+                port_sets.append(tuple(ports))
+                all_used_ports.update(ports)
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load {file_info['path']}:\n{e}")
                 return
