@@ -4,6 +4,8 @@ A tool to reconstruct a full N-port S-matrix from multiple smaller S-parameter m
 
 The tool averages the contributions for each S-parameter where measurements overlap, providing a composite S-matrix for the full device.
 
+Note: This was mostly coded using Github Copilot, but verified to work on real test datasets. Also, the functional and CLI approaches are covered by tests.
+
 ## Features
 
 -   **User-friendly Graphical User Interface (GUI)** for interactive merging.
